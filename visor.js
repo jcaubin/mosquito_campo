@@ -61,7 +61,14 @@ function prepare_box_data(temp_data) {
             title: { text: 'Temperaturas de hoy' },
             legend: { visible: false },
             xaxis: { autorangeoptions: { maxallowed: 24 }, dtick: 1 },
-            font: { size: 12 }
+            font: { size: 12 },
+            plot_bgcolor: 'rgba(250,250, 250, 0.5)',
+            paper_bgcolor: 'rgba(250,250, 250, 0.5)',
+            font: {
+                family: 'verdana, arial, sans-serif',
+                size: 12,
+                color: 'rgb(100,150,200)'
+            },
         };
 
         const plot_conf = { responsive: true }
