@@ -3,7 +3,7 @@
     "name": "Visor temperaturas",
     "short_name": "Visor temperaturas",
     "description": "Un visor simple de las temperaturas del día a partir de los datos de datos.madrid.es",
-    "start_url": "/",
+    "start_url": "/mosquito_campo/",
     "background_color": "#2f3d58",
     "theme_color": "#2f3d58",
     "orientation": "any",
