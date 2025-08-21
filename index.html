@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="es-ES" dir="ltr">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Visor temperaturas</title>
+  <script src="https://cdn.plot.ly/plotly-3.1.0.min.js" charset="utf-8"></script>
+  <link rel="stylesheet" href="visor.css">
+</head>
+
+<body>
+  <div id="tester"></div>
+
+  <script>
+    async function loadJson(url) {
+      const resp = await fetch(url, { cache: "no-store" });
+      if (!resp.ok) {
+        throw new Error(`Error al descargar JSON: ${resp.status} ${resp.statusText}`);
+      }
+      return await resp.json(); // convierte automáticamente a objeto/array
+    }
+
+    function normalize_data(records) {
+      let norm_data = []
+      records.forEach(record => {
+        for (h = 1; h <= 24; h++) {
+          norm_data.push({
+            PROVINCIA: record.PROVINCIA,
+            MUNICIPIO: record.MUNICIPIO,
+            ESTACION: record.ESTACION,
+            MAGNITUD: record.MAGNITUD,
+            ANO: record.ANO,
+            MES: record.MES,
+            DIA: record.DIA,
+            HORA: h,
+            VALOR: parseFloat(record[`H${h.toString().padStart(2, '0')}`]),
+            VALIDEZ: record[`V${h.toString().padStart(2, '0')}`],
+          });
+        }
+
+      });
+      return norm_data;
+    }
+
+    function prepare_box_data(temp_data) {
+      let data = []
+      for (h = 1; h <= 24; h++) {
+        let td = temp_data.filter(p => p.HORA === h)
+        let vl = [];
+        td.forEach(e => { vl.push(e.VALOR) });
+        data.push({ 
+          type: 'box',
+          y: vl,
+          name: h,
+          boxmean: true,         
+        });
+      };
+      return data
+    }
+
+    (async () => {
+      try {
+        const url = "https://ciudadesabiertas.madrid.es/dynamicAPI/API/query/meteo_tiemporeal.json?pageSize=5000"; // reemplaza por tu URL
+        const data = await loadJson(url);
+        console.log("JSON cargado en memoria:", data);
+        response = data;
+        let norm_data = normalize_data(response.records);
+        console.log("datos normalizados", norm_data);
+        temp_data = norm_data.filter(item => item.MAGNITUD === "83" && item.VALIDEZ === "V");
+        console.log("datos temperatura", temp_data);
+        let plot_data = prepare_box_data(temp_data);
+        console.log("datos plot", plot_data);
+
+        const layout = {
+          title: { text: 'Temperaturas de hoy' },
+          legend: { visible: false },
+          xaxis: { autorangeoptions: { maxallowed: 24 }, dtick: 1 },
+          font: {size: 12}
+        };
+
+        const plot_conf = { responsive: true }
+
+        TESTER = document.getElementById('tester');
+        Plotly.newPlot(TESTER, plot_data, layout, plot_conf);
+
+      } catch (err) {
+        console.error(err);
+      }
+    })();
+
+
+
+
+
+
+  </script>
+</body>
+
+</html>
