@@ -6,10 +6,6 @@ async function loadJson(url) {
     return await resp.json(); // convierte automáticamente a objeto/array
 }
 
-function normalize_data(records) {
-    return records;
-}
-
 function prepare_box_data(temp_data) {
     const headerNames = Object.keys(temp_data[0])
     const headerValues = [];
@@ -57,7 +53,10 @@ function plot_temp_data2(plot_data, hora, div) {
     })
 }
 
-function plot_temp_data(plot_data, hora, div) {
+function plot_temp_data(plot_data, div) {
+    const ploty_data = prepare_box_data(plot_data)
+    const ahora = new Date();
+    const hora = ahora.toLocaleTimeString();
     const layout = {
         title: { text: `Aparcamientos [ ${hora} ]` },
         font: { size: 12 },
@@ -70,7 +69,7 @@ function plot_temp_data(plot_data, hora, div) {
         },
     };
     const plot_conf = { responsive: true }
-    Plotly.newPlot(div, plot_data, layout, plot_conf);
+    Plotly.newPlot(div, ploty_data, layout, plot_conf);
 }
 
 async function load_aparcamientos() {
@@ -91,16 +90,91 @@ async function load_aparcamientos() {
         Object.entries(params).forEach(([key, value]) => url_detalle.searchParams.append(key, value));
         const aparcamiento_detalle = await load_data(url_detalle);
         a['ocupacion_disponible'] = !!aparcamiento_detalle['lstOccupation'];
-        if ( a['ocupacion_disponible']){
-            a['ocupacion_plazas_libres']=aparcamiento_detalle['lstOccupation'][0]['free'];
-            a['ocupacion_hora_dato']=aparcamiento_detalle['lstOccupation'][0]['moment'];
-        }else{
-            a['ocupacion_plazas_libres']=null;
-            a['ocupacion_hora_dato']=null;        }
+        if (a['ocupacion_disponible']) {
+            a['ocupacion_plazas_libres'] = aparcamiento_detalle['lstOccupation'][0]['free'];
+            a['ocupacion_hora_dato'] = aparcamiento_detalle['lstOccupation'][0]['moment'];
+        } else {
+            a['ocupacion_plazas_libres'] = null;
+            a['ocupacion_hora_dato'] = null;
+        }
     }));
 
     return listado_aparcamientos
 }
+
+
+function mostrarMapa(aparcamientos) {
+    // Si el mapa ya existe, elimínalo para evitar duplicados
+    if (window._leafletMap) {
+        window._leafletMap.remove();
+    }
+
+    // Centra el mapa en Madrid (puedes ajustar según tus datos)
+    const centro = [40.4168, -3.7038];
+    const map = L.map('map').setView(centro, 12);
+    window._leafletMap = map; // Guarda referencia global para limpiar después
+
+    // Añade capa base
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors'
+    }).addTo(map);
+
+    // Iconos personalizados
+    const iconVerde = new L.Icon({
+        iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-green.png',
+        shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+        iconSize: [25, 41],
+        iconAnchor: [12, 41],
+        popupAnchor: [1, -34],
+        shadowSize: [41, 41]
+    });
+
+    const iconGris = new L.Icon({
+        iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-grey.png',
+        shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+        iconSize: [25, 41],
+        iconAnchor: [12, 41],
+        popupAnchor: [1, -34],
+        shadowSize: [41, 41]
+    });
+    const iconAmarillo = new L.Icon({
+        iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-yellow.png',
+        shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+        iconSize: [25, 41],
+        iconAnchor: [12, 41],
+        popupAnchor: [1, -34],
+        shadowSize: [41, 41]
+    });
+
+    const iconNaranja = new L.Icon({
+        iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-orange.png',
+        shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+        iconSize: [25, 41],
+        iconAnchor: [12, 41],
+        popupAnchor: [1, -34],
+        shadowSize: [41, 41]
+    });
+
+    // Añade marcadores
+    aparcamientos.forEach(a => {
+        if (a.latitude && a.longitude) {
+            let icon;
+            if (!a.ocupacion_disponible || a.ocupacion_plazas_libres === null) {
+                icon = iconGris;
+            } else if (a.ocupacion_plazas_libres <= 10) {
+                icon = iconNaranja;
+            } else if (a.ocupacion_plazas_libres <= 30) {
+                icon = iconAmarillo;
+            } else {
+                icon = iconVerde;
+            }
+            L.marker([a.latitude, a.longitude], { icon })
+                .addTo(map)
+                .bindPopup(`<b>${a.name}</b><br>${a.address}<br>Plazas libres: ${a.ocupacion_plazas_libres ?? "N/D"}`);
+        }
+    });
+}
+
 
 async function load_show() {
     try {
@@ -109,11 +183,26 @@ async function load_show() {
         const tester = document.getElementById('tester');
         spinner.style.display = "block"; // Mostrar spinner
         //tester.style.display = "none"; //oculta el grafico
-        const plot_data = await load_aparcamientos()
-        const t1 = prepare_box_data(plot_data)
-        const ahora = new Date();
-        const hora = ahora.toLocaleTimeString();
-        plot_temp_data(t1, ahora, tester);
+        const listado_aparcamientos = await load_aparcamientos()
+        console.log('listado aparcamientos', listado_aparcamientos)
+        //plot_temp_data(plot_data, tester);
+        const tabla = new Tabulator("#tabla-aparcamientos", {
+            data: listado_aparcamientos,
+            height: 200,
+            layout: "fitColumns",
+            columns: [
+                { title: "Nombre", field: "name", sorter: "string", headerFilter: "input" },
+                { title: "Dirección", field: "address", sorter: "string", headerFilter: "input" },
+                { title: "Hay libres", field: "ocupacion_disponible", sorter: "string", headerFilter: "input" },
+                { title: "Numero libres", field: "ocupacion_plazas_libres", sorter: "number", headerFilter: "input" },
+                { title: "Hora info", field: "ocupacion_hora_dato", sorter: "date", headerFilter: "input" },
+                // ...más columnas según tus datos
+                // ...más columnas según tus datos
+            ],
+        });
+        // Muestra el mapa con los puntos
+        mostrarMapa(listado_aparcamientos);
+
         //tester.style.display = "block";
     } catch (error) {
         const errorItem = document.createElement("li");

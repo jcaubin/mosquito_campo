@@ -8,12 +8,21 @@
   <script src="https://cdn.plot.ly/plotly-3.1.0.min.js" charset="utf-8"></script>
   <link rel="stylesheet" href="visor.css">
 
+  <link href="https://unpkg.com/tabulator-tables@5.5.0/dist/css/tabulator.min.css" rel="stylesheet">
+  <script src="https://unpkg.com/tabulator-tables@5.5.0/dist/js/tabulator.min.js"></script>
+
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
 </head>
 
 <body>
   <button id="cargarBtn">Cargar datos</button>
   <div id="spinner"></div>
   <ol id="tester"></ol>
+  <div id="tabla-aparcamientos"></div>
+
+  <div id="map" style="height: 500px; margin-bottom: 20px;"></div>
 
   <script src="aparcamientos.js"></script>
 
